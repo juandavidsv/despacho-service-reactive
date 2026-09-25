@@ -28,7 +28,9 @@ public class ServiciosExternosClient {
     }
 
     public Mono<String> ventana(String ciudad) {
-        return client.get().uri(uri -> uri.path("/external/window").queryParam("ciudad", ciudad).build()).retrieve().bodyToMono(String.class).cache(Duration.ofMinutes(10));
+        return client.get().uri(uri -> uri.path("/external/window").queryParam("ciudad", ciudad).build()).retrieve().bodyToMono(String.class)
+                .onErrorReturn("VENTANA_ESTANDAR")
+                .cache(Duration.ofMinutes(10));
     }
 
     private boolean transitorio(Throwable error) {
