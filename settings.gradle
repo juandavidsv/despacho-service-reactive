@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        maven { url "https://artifactory.apps.bancolombia.com:443/maven-bancolombia" }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        maven { url "https://artifactory.apps.bancolombia.com:443/maven-bancolombia" }
+    }
+}
