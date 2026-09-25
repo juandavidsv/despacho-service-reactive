@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+/** Lo que el cliente ve de un despacho: estado actual, tarifa cotizada, score de riesgo y sus paquetes. */
 public record DespachoResponse(Long id, Long clienteId, String ciudad, String estado,
                                 BigDecimal tarifa, BigDecimal total, Integer scoreRiesgo,
                                 String trazaId, Instant creadoEn, Instant expiraEn,

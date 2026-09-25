@@ -18,6 +18,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Job de fondo que cada cierto intervalo (30s por defecto) revisa que
+ * despachos ASIGNADOS ya vencieron su ventana de 15 minutos, les devuelve el
+ * cupo a los vehiculos y los marca como EXPIRADO. Es una suscripcion de
+ * larga vida: se arranca cuando la app termina de iniciar y se cierra
+ * ordenadamente cuando el bean se destruye (Disposable + @PreDestroy).
+ */
 @Component
 public class ExpiracionDespachosJob {
     private static final Logger log = LoggerFactory.getLogger(ExpiracionDespachosJob.class);
@@ -33,6 +40,8 @@ public class ExpiracionDespachosJob {
         this(db, bus, Duration.ofSeconds(30), Clock.systemUTC(), Schedulers.parallel());
     }
 
+    // Constructor secundario pensado para tests: permite inyectar un reloj y un scheduler controlados
+    // (por ejemplo, un VirtualTimeScheduler) sin depender de que pase tiempo real.
     public ExpiracionDespachosJob(DatabaseClient db, EventBus bus, Duration intervalo, Clock reloj, Scheduler scheduler) {
         this.db = db;
         this.bus = bus;
@@ -44,6 +53,9 @@ public class ExpiracionDespachosJob {
     @EventListener(ApplicationReadyEvent.class)
     public void iniciar() {
         suscripcion = Flux.interval(intervalo, scheduler)
+                // Si un ciclo todavia esta corriendo cuando toca el siguiente tick, lo descartamos
+                // en vez de acumular tics en cola: no tiene sentido "ponerse al dia" corriendo el
+                // job varias veces seguidas, solo nos interesa el estado actual de la base.
                 .onBackpressureDrop()
                 .concatMap(tick -> expirar().onErrorResume(error -> {
                     log.warn("Error en expiración de despachos", error);
@@ -53,6 +65,7 @@ public class ExpiracionDespachosJob {
                 .subscribe();
     }
 
+    /** Busca despachos ASIGNADOS vencidos, libera su cupo y los marca EXPIRADO, uno por uno. */
     Mono<Long> expirar() {
         return db.sql("SELECT id FROM despacho WHERE estado = 'ASIGNADO' AND expira_en < :ahora")
                 .bind("ahora", Instant.now(reloj))
@@ -77,6 +90,7 @@ public class ExpiracionDespachosJob {
                 .count();
     }
 
+    /** Cierra la suscripcion de fondo de forma ordenada cuando el contexto de Spring se apaga. */
     @PreDestroy
     public void detener() {
         if (suscripcion != null) suscripcion.dispose();

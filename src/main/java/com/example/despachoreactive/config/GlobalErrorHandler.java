@@ -11,6 +11,12 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Un solo lugar donde todas las excepciones de dominio se traducen a un
+ * cuerpo de error consistente: { codigo, mensaje, trazaId, instante }. Sin
+ * esto, cada controlador tendria que preocuparse por armar su propia
+ * respuesta de error, y seguro terminarian todas distintas.
+ */
 @RestControllerAdvice
 public class GlobalErrorHandler {
     @ExceptionHandler(DomainException.class)

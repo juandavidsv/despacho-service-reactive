@@ -13,6 +13,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.regex.Pattern;
 
+/** CRUD reactivo de vehiculos, mas la carga masiva por NDJSON. */
 @RestController
 @RequestMapping("/api/vehiculos")
 public class VehiculoController {
@@ -53,6 +54,15 @@ public class VehiculoController {
                 .flatMap(rows -> rows == 0 ? Mono.error(new VehiculoNoExisteException(id)) : Mono.empty());
     }
 
+    /**
+     * Carga masiva de vehiculos desde un archivo NDJSON (una linea = un
+     * vehiculo). buffer(500) junta las lineas en lotes para no abrir una
+     * transaccion o conexion por cada fila individual. Dentro de cada lote,
+     * publishOn(Schedulers.parallel()) mueve la validacion de formato de
+     * placa a un scheduler de trabajo, para no hacer ese calculo en el hilo
+     * de I/O de Netty (aunque aca es liviano, la idea es mostrar el patron
+     * para cuando la validacion sea mas pesada).
+     */
     @PostMapping(value = "/bulk", consumes = MediaType.APPLICATION_NDJSON_VALUE)
     public Mono<?> bulk(@Valid @RequestBody Flux<VehiculoRequest> requests) {
         return requests.buffer(500)
@@ -65,6 +75,7 @@ public class VehiculoController {
                 .map(total -> java.util.Map.of("procesados", total));
     }
 
+    /** Normaliza la placa y corta la carga con un 400 si no cumple el formato esperado. */
     private VehiculoRequest validarFormatoPlaca(VehiculoRequest request) {
         String placaNormalizada = request.placa() == null ? "" : request.placa().trim().toUpperCase();
         if (!PLACA_VALIDA.matcher(placaNormalizada).matches()) {
@@ -73,6 +84,7 @@ public class VehiculoController {
         return new VehiculoRequest(request.id(), placaNormalizada, request.ciudad(), request.cupoKg());
     }
 
+    /** Insertar o actualizar por id: si el vehiculo ya existe, se sobreescribe (util para reintentos). */
     private Mono<VehiculoRequest> upsert(VehiculoRequest request) {
         return db.sql("INSERT INTO vehiculo (id, placa, ciudad, cupo_kg) VALUES (:id, :placa, :ciudad, :cupo) ON CONFLICT (id) DO UPDATE SET placa = EXCLUDED.placa, ciudad = EXCLUDED.ciudad, cupo_kg = EXCLUDED.cupo_kg RETURNING id, placa, ciudad, cupo_kg")
                 .bind("id", request.id()).bind("placa", request.placa()).bind("ciudad", request.ciudad()).bind("cupo", request.cupoKg()).map((r, m) -> mapear(r)).one();

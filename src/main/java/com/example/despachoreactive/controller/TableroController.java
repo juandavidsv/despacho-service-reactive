@@ -8,6 +8,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+/**
+ * El tablero operativo global: todos los clientes que se conecten aca ven
+ * exactamente el mismo stream (hot, compartido), no una copia independiente
+ * cada uno. publish().refCount(1) hace que el bus se conecte una sola vez,
+ * sin importar cuantos suscriptores lleguen despues.
+ *
+ * onBackpressureLatest: si un cliente lento no alcanza a consumir al ritmo
+ * que llegan los eventos, preferimos que reciba el ultimo estado disponible
+ * antes que acumular una cola creciente en memoria (el tablero muestra
+ * "que esta pasando ahora", no un historial completo).
+ *
+ * distinctUntilChanged: evita mandar dos veces seguidas la misma combinacion
+ * despacho+estado si por algun motivo se publicara un evento repetido.
+ */
 @RestController
 @RequestMapping("/api/ops")
 public class TableroController {

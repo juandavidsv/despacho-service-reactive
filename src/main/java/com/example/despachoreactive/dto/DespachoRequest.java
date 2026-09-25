@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 
 import java.util.List;
 
+/** Lo que llega en el POST /api/despachos: cliente, ciudad y la lista de paquetes con su vehiculo y peso. */
 public record DespachoRequest(
         @NotNull Long clienteId,
         @NotNull String ciudad,

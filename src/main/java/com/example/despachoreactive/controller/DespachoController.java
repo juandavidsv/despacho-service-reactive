@@ -16,6 +16,10 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.Set;
 
+/**
+ * La puerta HTTP del caso de uso principal: crear despachos, consultarlos,
+ * confirmarlos y seguirlos en vivo por SSE.
+ */
 @RestController
 @RequestMapping("/api/despachos")
 public class DespachoController {
@@ -44,6 +48,14 @@ public class DespachoController {
         return service.confirmar(id);
     }
 
+    /**
+     * Un cliente se suscribe a este endpoint y va recibiendo, en vivo, los
+     * eventos de ESE despacho puntual. takeUntil corta el stream apenas
+     * llega un estado terminal (entregado, rechazado o expirado): no tiene
+     * sentido seguir la conexion abierta despues de eso. El timeout de 15
+     * minutos es una salvaguarda por si el despacho nunca llega a un estado
+     * terminal (por ejemplo, si el job de expiracion tuviera un problema).
+     */
     @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<DespachoEvent> eventos(@PathVariable Long id) {
         return bus.eventos().filter(event -> event.despachoId().equals(id)).takeUntil(event -> TERMINALES.contains(event.estado())).timeout(Duration.ofMinutes(15));

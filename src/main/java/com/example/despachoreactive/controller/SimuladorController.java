@@ -8,6 +8,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Simula los tres servicios externos que en la vida real serian de un
+ * tercero (tarifa, riesgo, ventana de entrega) y ademas expone un panel de
+ * control (/external/simulator) para forzar fallas, latencia o riesgo alto
+ * a demanda. Sirve para probar en vivo la resiliencia sin depender de que
+ * un servicio real falle justo quiera cuando uno quiera hacer la demo.
+ */
 @RestController
 @RequestMapping("/external")
 public class SimuladorController {
@@ -51,6 +58,7 @@ public class SimuladorController {
         return respuesta(() -> "VENTANA_ESTANDAR");
     }
 
+    /** Aplica la latencia y el fallo configurados antes de resolver cualquiera de los tres endpoints simulados. */
     private <T> Mono<T> respuesta(java.util.function.Supplier<T> supplier) {
         if (fallo.get()) return Mono.error(new IllegalStateException("Fallo simulado"));
         return Mono.delay(java.time.Duration.ofMillis(latencia.get())).thenReturn(supplier.get());
