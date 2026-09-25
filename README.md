@@ -146,7 +146,7 @@ Configuracion predeterminada en `src/main/resources/application.yml`:
 
 ## Base de datos: PostgreSQL local (no Docker)
 
-Este proyecto corre contra una instalación nativa de PostgreSQL en la máquina (no requiere Docker). Solo hace falta que la base `despachodb` exista y que las credenciales en `application.yml` (o la variable `POSTGRES_PASSWORD`) apunten a tu Postgres local. Al arrancar, Spring Boot crea las tablas y siembra los vehículos de ejemplo automáticamente.
+Este proyecto corre contra una instalación nativa de PostgreSQL en la máquina local puesto que en el equipo del banco no contamos con Docker. Solo hace falta que la base `despachodb` exista y que las credenciales en `application.yml` (o la variable `POSTGRES_PASSWORD`) apunten a tu Postgres local. Al arrancar, Spring Boot crea las tablas y siembra los vehículos de ejemplo automáticamente.
 
 ```powershell
 .\gradlew.bat compileJava
